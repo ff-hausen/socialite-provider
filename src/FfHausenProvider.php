@@ -3,46 +3,57 @@
 namespace FfHausen\SocialiteProvider;
 
 use GuzzleHttp\RequestOptions;
+use SocialiteProviders\Manager\Contracts\OAuth2\ProviderInterface;
 use SocialiteProviders\Manager\OAuth2\AbstractProvider;
 use SocialiteProviders\Manager\OAuth2\User;
 
-class Provider extends AbstractProvider
+class FfHausenProvider extends AbstractProvider implements ProviderInterface
 {
+    protected $scopeSeparator = ' ';
+
     public static function additionalConfigKeys(): array
     {
         return [
-            'host',
+            'base_uri',
         ];
     }
 
     protected function getAuthUrl($state): string
     {
-        return $this->getConfig('host').'/oauth/authorize';
+        $base_uri = $this->getConfig('base_uri').'/oauth/authorize';
+
+        return $this->buildAuthUrlFromBase($base_uri, $state);
     }
 
     protected function getTokenUrl(): string
     {
-        return $this->getConfig('host').'/oauth/token';
+        return $this->getConfig('base_uri').'/oauth/token';
     }
 
     protected function getUserByToken($token): array
     {
-        $userUrl = $this->getConfig('host').'/api/user';
+        $userUrl = $this->getConfig('base_uri').'/api/user';
 
-        $response = $this->getHttpClient()->get($userUrl, [
+        $response = $this->getHttpClient()->get(
+            $userUrl, $this->getRequestOptions($token)
+        );
+
+        return json_decode($response->getBody(), true);
+    }
+
+    public function getRequestOptions(string $token): array
+    {
+        return [
             RequestOptions::HEADERS => [
                 'Authorization' => 'Bearer '.$token,
             ],
-        ]);
-
-        return (array) json_decode($response->getBody()->getContents(), true);
+        ];
     }
 
     protected function mapUserToObject(array $user)
     {
-        return (new User)->map([
+        return (new User)->setRaw($user)->map([
             'id' => $user['id'],
-            'nickname' => null,
             'name' => $user['first_name'].' '.$user['last_name'],
             'email' => $user['email'],
             'avatar' => $user['image_url'],
