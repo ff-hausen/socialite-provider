@@ -3,6 +3,7 @@
 namespace FfHausen\SocialiteProvider;
 
 use GuzzleHttp\RequestOptions;
+use Illuminate\Support\Facades\App;
 use SocialiteProviders\Manager\Contracts\OAuth2\ProviderInterface;
 use SocialiteProviders\Manager\OAuth2\AbstractProvider;
 use SocialiteProviders\Manager\OAuth2\User;
@@ -30,6 +31,17 @@ class FfHausenProvider extends AbstractProvider implements ProviderInterface
         return $this->getConfig('base_uri').'/oauth/token';
     }
 
+    public function getAccessTokenResponse($code)
+    {
+        $response = $this->getHttpClient()->post($this->getTokenUrl(), [
+            RequestOptions::HEADERS => $this->getTokenHeaders($code),
+            RequestOptions::FORM_PARAMS => $this->getTokenFields($code),
+            RequestOptions::VERIFY => ! App::environment('local'),
+        ]);
+
+        return json_decode($response->getBody(), true);
+    }
+
     protected function getUserByToken($token): array
     {
         $userUrl = $this->getConfig('base_uri').'/api/user';
@@ -47,6 +59,7 @@ class FfHausenProvider extends AbstractProvider implements ProviderInterface
             RequestOptions::HEADERS => [
                 'Authorization' => 'Bearer '.$token,
             ],
+            RequestOptions::VERIFY => ! App::environment('local'),
         ];
     }
 
