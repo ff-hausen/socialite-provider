@@ -65,11 +65,13 @@ class FfHausenProvider extends AbstractProvider implements ProviderInterface
 
     protected function mapUserToObject(array $user)
     {
-        return (new User)->setRaw($user)->map([
-            'id' => $user['id'],
-            'name' => $user['first_name'].' '.$user['last_name'],
-            'email' => $user['email'],
-            'avatar' => $user['image_url'],
+        $data = $user['data'];
+
+        return (new User)->setRaw($data)->map([
+            'id' => $data['id'],
+            'name' => $data['first_name'].' '.$data['last_name'],
+            'email' => $data['email'],
+            'avatar' => $data['image_url'],
         ]);
 
     }
